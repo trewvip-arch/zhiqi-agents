@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agents-gallery-app
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/agents-gallery
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
   mongodb:
     image: mongo:7
     container_name: agents-gallery-mongo
