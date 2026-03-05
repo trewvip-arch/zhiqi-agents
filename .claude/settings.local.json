@@ -1,7 +1,21 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(npx create-next-app@14:*)",
+      "Bash(cd /Users/trevorwang/workspace/ai/agents_gallery_temp && rm -rf .git && cp -R . /Users/trevorwang/workspace/ai/agents_gallery/ 2>&1)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(git:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "Bash(echo nvm not found:*)",
+      "Bash(source:*)",
+      "Bash(source ~/.nvm/nvm.sh && nvm use 20 && npm run build 2>&1)",
+      "Bash(source ~/.nvm/nvm.sh && nvm use 20 && npx tsc --noEmit 2>&1)",
+      "Bash(echo nvm not available:*)",
+      "Bash(source ~/.nvm/nvm.sh && nvm use 20.20.0 && npm run build 2>&1)"
     ]
   }
 }
