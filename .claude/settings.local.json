@@ -23,7 +23,8 @@
       "Bash(node:*)",
       "Bash(npx:*)",
       "Skill(commit-commands:commit)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(echo checking config files:*)"
     ]
   }
 }
