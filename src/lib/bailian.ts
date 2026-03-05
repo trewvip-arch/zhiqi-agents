@@ -25,7 +25,7 @@ export async function* sendMessageStream(
   const { appId, message, sessionId } = input;
 
   if (!DASHSCOPE_API_KEY) {
-    throw new Error('DASHSCOPE_API_KEY is not configured');
+    throw new Error('请在 .env.local 中配置 DASHSCOPE_API_KEY');
   }
 
   const response = await fetch(`${DASHSCOPE_BASE_URL}/${appId}/completion`, {
@@ -107,7 +107,7 @@ export async function sendMessage(input: SendMessageInput): Promise<BailianRespo
   const { appId, message, sessionId } = input;
 
   if (!DASHSCOPE_API_KEY) {
-    return { success: false, error: 'DASHSCOPE_API_KEY is not configured' };
+    return { success: false, error: '请在 .env.local 中配置 DASHSCOPE_API_KEY' };
   }
 
   try {

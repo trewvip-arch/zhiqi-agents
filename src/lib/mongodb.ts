@@ -12,7 +12,10 @@ declare global {
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// MongoDB is optional - app can run in demo mode without it
+if (!MONGODB_URI) {
+  throw new Error('请在 .env.local 中配置 MONGODB_URI');
+}
+
 const globalWithCache = global as typeof globalThis & {
   mongooseCache: MongooseCache;
 };
@@ -23,16 +26,9 @@ if (!globalWithCache.mongooseCache) {
 
 const cached = globalWithCache.mongooseCache;
 
-let isConnected = false;
-
 export async function connectToDatabase() {
   if (cached.conn) {
     return cached.conn;
-  }
-
-  if (!MONGODB_URI) {
-    console.warn('MONGODB_URI not set - running in demo mode without database');
-    return null;
   }
 
   if (!cached.promise) {
@@ -40,22 +36,15 @@ export async function connectToDatabase() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts);
+    cached.promise = mongoose.connect(MONGODB_URI!, opts);
   }
 
   try {
     cached.conn = await cached.promise;
-    isConnected = true;
   } catch (e) {
     cached.promise = null;
-    console.error('MongoDB connection error:', e);
-    console.warn('Running in demo mode without database persistence');
-    return null;
+    throw e;
   }
 
   return cached.conn;
-}
-
-export function isDatabaseConnected() {
-  return isConnected;
 }
