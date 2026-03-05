@@ -10,6 +10,7 @@ export interface ConversationDocument {
   agentId: string;
   title?: string;
   messages: Message[];
+  sessionId?: string; // 百炼会话 ID，用于多轮对话上下文
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, use, useCallback } from 'react';
-import { message, Spin } from 'antd';
+import { useEffect, use, useState, useRef } from 'react';
+import { Spin, App } from 'antd';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, UIMessage } from 'ai';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
-import { Message } from '@/types/conversation';
-import { createConversation } from '@/app/actions/conversation-actions';
+import { createConversation, addMessage, updateSessionId } from '@/app/actions/conversation-actions';
 import { getAgentById } from '@/app/actions/agent';
 import { Agent } from '@/types/agent';
+import { Message } from '@/types/conversation';
 
 interface ChatPageProps {
   params: Promise<{
@@ -17,13 +19,12 @@ interface ChatPageProps {
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
+  const { message } = App.useApp();
   const { agentId } = use(params);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState('');
+  const sessionIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const init = async () => {
@@ -39,93 +40,78 @@ export default function ChatPage({ params }: ChatPageProps) {
     init();
   }, [agentId]);
 
-  const handleSend = useCallback(async (content: string) => {
-    if (!conversationId || !agent) return;
+  const { messages, sendMessage, status, error } = useChat({
+    id: conversationId || undefined,
+    transport: new DefaultChatTransport({
+      api: '/api/chat/stream',
+      prepareSendMessagesRequest: ({ id, messages: msgs }) => {
+        const lastMessage = msgs[msgs.length - 1];
+        const textContent = lastMessage?.parts
+          ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+          .map(p => p.text)
+          .join('') || '';
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content,
-      createdAt: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setIsLoading(true);
-    setStreamingContent('');
-
-    try {
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId,
-          appId: agent.appId,
-          message: content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let fullContent = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('data:')) {
-            const data = line.slice(5).trim();
-
-            if (data === '[DONE]') {
-              // Add complete message
-              const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: fullContent,
-                createdAt: new Date(),
-              };
-              setMessages((prev) => [...prev, assistantMessage]);
-              setStreamingContent('');
-              setIsLoading(false);
-              return;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                fullContent += parsed.content;
-                setStreamingContent(fullContent);
-              }
-              if (parsed.error) {
-                message.error(parsed.error);
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
+        return {
+          body: {
+            conversationId: id,
+            appId: agent?.appId,
+            message: textContent,
+            sessionId: sessionIdRef.current,
+          },
+        };
+      },
+    }),
+    onFinish: async ({ message: msg }) => {
+      if (conversationId) {
+        const textContent = (msg as UIMessage).parts
+          ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+          .map(p => p.text)
+          .join('') || '';
+        if (textContent) {
+          await addMessage(conversationId, 'assistant', textContent);
+        }
+        // 从 metadata 中提取 sessionId 并保存
+        const metadata = (msg as UIMessage & { metadata?: { sessionId?: string } }).metadata;
+        if (metadata?.sessionId && metadata.sessionId !== sessionIdRef.current) {
+          sessionIdRef.current = metadata.sessionId;
+          await updateSessionId(conversationId, metadata.sessionId);
         }
       }
-    } catch (error) {
-      message.error('网络错误，请重试');
-      setIsLoading(false);
-      setStreamingContent('');
+    },
+    onError: (err) => {
+      message.error(err.message || '发生错误');
+    },
+  });
+
+  // 保存用户消息并发送
+  const handleSend = async (content: string) => {
+    if (!conversationId) return;
+    await addMessage(conversationId, 'user', content);
+    sendMessage({ role: 'user', parts: [{ type: 'text', text: content }] });
+  };
+
+  // 转换 AI SDK 消息格式到组件格式
+  const convertedMessages: Message[] = messages.map((msg: UIMessage) => {
+    const textContent = msg.parts
+      ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+      .map(p => p.text)
+      .join('') || '';
+
+    return {
+      id: msg.id,
+      role: msg.role as 'user' | 'assistant',
+      content: textContent,
+      createdAt: new Date(),
+    };
+  });
+
+  const isStreaming = status === 'streaming';
+
+  useEffect(() => {
+    if (error) {
+      message.error(error.message || '网络错误');
     }
-  }, [conversationId, agent]);
+  }, [error]);
 
   if (loading) {
     return (
@@ -147,12 +133,11 @@ export default function ChatPage({ params }: ChatPageProps) {
     <>
       <ChatHeader agent={agent} />
       <MessageList
-        messages={messages}
+        messages={convertedMessages}
         agentAvatar={agent.avatar}
-        isLoading={isLoading}
-        streamingContent={streamingContent}
+        isLoading={isStreaming}
       />
-      <ChatInput onSend={handleSend} disabled={isLoading || !conversationId} />
+      <ChatInput onSend={handleSend} disabled={status !== 'ready' || !conversationId} />
     </>
   );
 }

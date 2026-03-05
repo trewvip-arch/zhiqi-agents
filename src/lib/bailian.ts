@@ -17,6 +17,7 @@ export interface BailianResponse {
 export interface StreamChunk {
   content: string;
   done: boolean;
+  sessionId?: string; // 百炼会话 ID，首次响应返回
 }
 
 export async function* sendMessageStream(
@@ -59,6 +60,7 @@ export async function* sendMessageStream(
 
   const decoder = new TextDecoder();
   let buffer = '';
+  let lastSessionId: string | undefined;
 
   try {
     while (true) {
@@ -66,12 +68,11 @@ export async function* sendMessageStream(
 
       if (done) {
         console.log('[bailian] Stream done');
-        yield { content: '', done: true };
+        yield { content: '', done: true, sessionId: lastSessionId };
         break;
       }
 
       const chunk = decoder.decode(value, { stream: true });
-      console.log('[bailian] Raw chunk:', chunk.slice(0, 200));
       buffer += chunk;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
@@ -79,21 +80,23 @@ export async function* sendMessageStream(
       for (const line of lines) {
         if (line.startsWith('data:')) {
           const data = line.slice(5).trim();
-          console.log('[bailian] Data line:', data.slice(0, 200));
           if (data === '[DONE]') {
-            yield { content: '', done: true };
+            yield { content: '', done: true, sessionId: lastSessionId };
             return;
           }
 
           try {
             const parsed = JSON.parse(data);
-            console.log('[bailian] Parsed:', JSON.stringify(parsed).slice(0, 200));
             const content = parsed.output?.text || '';
+            // 提取 session_id 用于多轮对话
+            if (parsed.output?.session_id) {
+              lastSessionId = parsed.output.session_id;
+            }
             if (content) {
               yield { content, done: false };
             }
           } catch (e) {
-            console.log('[bailian] JSON parse error:', e);
+            // 跳过无效 JSON
           }
         }
       }

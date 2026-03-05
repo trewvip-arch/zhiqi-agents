@@ -6,4 +6,6 @@ export {
   deleteConversation,
 } from './conversation';
 
+export { updateSessionId, getSessionId } from './conversation';
+
 export { chat } from './chat';

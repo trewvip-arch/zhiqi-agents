@@ -36,6 +36,7 @@ export async function getConversation(conversationId: string) {
       content: m.content,
       createdAt: m.createdAt,
     })),
+    sessionId: conversation.sessionId,
     createdAt: conversation.createdAt,
     updatedAt: conversation.updatedAt,
   };
@@ -94,4 +95,24 @@ export async function addMessage(
 export async function deleteConversation(conversationId: string) {
   await connectToDatabase();
   await Conversation.findByIdAndDelete(conversationId);
+}
+
+export async function updateSessionId(
+  conversationId: string,
+  sessionId: string
+) {
+  'use server';
+
+  await connectToDatabase();
+
+  await Conversation.findByIdAndUpdate(conversationId, { sessionId });
+}
+
+export async function getSessionId(conversationId: string): Promise<string | undefined> {
+  'use server';
+
+  await connectToDatabase();
+
+  const conversation = await Conversation.findById(conversationId);
+  return conversation?.sessionId;
 }

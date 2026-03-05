@@ -13,6 +13,7 @@ const conversationSchema = new mongoose.Schema(
     agentId: { type: String, required: true, index: true },
     title: { type: String },
     messages: [messageSchema],
+    sessionId: { type: String }, // 百炼会话 ID，用于多轮对话
   },
   {
     timestamps: true,
@@ -31,6 +32,7 @@ export type ConversationDocumentType = mongoose.Document &
     agentId: string;
     title?: string;
     messages: Message[];
+    sessionId?: string;
     createdAt: Date;
     updatedAt: Date;
   };

@@ -9,6 +9,7 @@ interface MessageListProps {
   messages: Message[];
   agentAvatar: string;
   isLoading?: boolean;
+  /** @deprecated AI SDK 已经将流式内容添加到 messages 数组中，不再需要单独传递 */
   streamingContent?: string;
 }
 
