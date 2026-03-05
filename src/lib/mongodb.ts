@@ -10,12 +10,6 @@ declare global {
   var mongooseCache: MongooseCache | undefined;
 }
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-if (!MONGODB_URI) {
-  throw new Error('请在 .env.local 中配置 MONGODB_URI');
-}
-
 const globalWithCache = global as typeof globalThis & {
   mongooseCache: MongooseCache;
 };
@@ -31,12 +25,18 @@ export async function connectToDatabase() {
     return cached.conn;
   }
 
+  const MONGODB_URI = process.env.MONGODB_URI;
+
+  if (!MONGODB_URI) {
+    throw new Error('请在 .env.local 中配置 MONGODB_URI');
+  }
+
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts);
+    cached.promise = mongoose.connect(MONGODB_URI, opts);
   }
 
   try {
