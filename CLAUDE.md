@@ -8,10 +8,11 @@ AI 数字员工平台 - Enterprise AI Digital Employee Portal. A web application
 
 ## Tech Stack
 
-- **Framework:** Next.js 14+ (App Router)
+- **Framework:** Next.js 16+ (App Router)
 - **UI:** Ant Design 5 + Tailwind CSS
 - **Database:** MongoDB with Mongoose
 - **AI Backend:** 阿里云百炼 DashScope API
+- **Node.js:** 20.9+ required
 
 ## Development Commands
 
@@ -37,7 +38,6 @@ npm run lint
 Required in `.env.local`:
 - `DASHSCOPE_API_KEY` - API key for 百炼
 - `MONGODB_URI` - MongoDB connection string
-- `NEXT_PUBLIC_*_APP_ID` - Agent APP_IDs from 百炼
 
 ## Architecture
 
@@ -45,19 +45,30 @@ Required in `.env.local`:
 src/
 ├── app/                 # Next.js App Router pages
 │   ├── actions/         # Server Actions
+│   ├── api/             # API routes
+│   │   └── chat/stream/ # SSE streaming endpoint
 │   └── chat/            # Chat routes
 ├── components/          # React components
 │   └── chat/            # Chat-specific components
-├── config/              # Configuration (agents)
+├── hooks/               # Custom React hooks
+│   └── useChatStream.ts # Streaming chat hook
 ├── lib/                 # Utilities
 │   ├── models/          # Mongoose models
 │   ├── mongodb.ts       # DB connection
-│   └── bailian.ts       # API client
+│   └── bailian.ts       # API client (with streaming)
 └── types/               # TypeScript types
 ```
 
 ## Key Patterns
 
-- Server Actions for all API calls (keeps API keys secure)
-- Mongoose with global caching for serverless compatibility
-- Agent config in `src/config/agents.ts` for easy management
+- **Streaming:** `/api/chat/stream` route returns SSE for real-time responses
+- **Async Params:** All dynamic route pages use `use(params)` pattern for Next.js 16
+- **Markdown:** Chat messages support GFM with syntax highlighting
+- **Server Actions:** Used for non-streaming API calls (keeps API keys secure)
+- **Mongoose:** Global caching for serverless compatibility
+
+## Key Dependencies
+
+- `react-markdown` + `remark-gfm` - Markdown rendering
+- `react-syntax-highlighter` - Code syntax highlighting
+- `@tailwindcss/typography` - Prose styling for markdown
