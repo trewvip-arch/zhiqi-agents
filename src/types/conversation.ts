@@ -1,8 +1,14 @@
+export interface MessageFile {
+  url: string;
+  name: string;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: Date;
+  files?: MessageFile[]; // 用户消息的文件附件
 }
 
 export interface ConversationDocument {

@@ -6,8 +6,8 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport, UIMessage } from 'ai';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
-import ChatInput from '@/components/chat/ChatInput';
 import { createConversation, addMessage, updateSessionId } from '@/app/actions/conversation-actions';
+import ChatInput, { AttachedFile } from '@/components/chat/ChatInput';
 import { getAgentById } from '@/app/actions/agent';
 import { Agent } from '@/types/agent';
 import { Message } from '@/types/conversation';
@@ -51,12 +51,19 @@ export default function ChatPage({ params }: ChatPageProps) {
           .map(p => p.text)
           .join('') || '';
 
+        // 提取文件附件
+        const fileParts = lastMessage?.parts?.filter((p) => p.type === 'file') || [];
+        const fileList = fileParts.length > 0
+          ? fileParts.map((f) => ({ url: (f as { url: string }).url, filename: (f as { filename?: string }).filename }))
+          : undefined;
+
         return {
           body: {
             conversationId: id,
             appId: agent?.appId,
             message: textContent,
             sessionId: sessionIdRef.current,
+            fileList,
           },
         };
       },
@@ -84,10 +91,30 @@ export default function ChatPage({ params }: ChatPageProps) {
   });
 
   // 保存用户消息并发送
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, files?: AttachedFile[]) => {
     if (!conversationId) return;
     await addMessage(conversationId, 'user', content);
-    sendMessage({ role: 'user', parts: [{ type: 'text', text: content }] });
+
+    // 构建消息 parts，包含文本和文件
+    const parts: Array<{ type: 'text'; text: string } | { type: 'file'; url: string; mediaType: string; filename?: string }> = [
+      { type: 'text', text: content },
+    ];
+
+    // 如果有文件附件，添加到 parts 中（百炼文件问答使用 URL 格式）
+    if (files && files.length > 0) {
+      files.forEach(file => {
+        parts.push({
+          type: 'file' as const,
+          url: file.url,
+          mediaType: 'application/octet-stream', // 通用类型，百炼会识别 URL
+          filename: file.name,
+        });
+      });
+    }
+
+    // 使用 any 绕过类型检查，因为 AI SDK 的类型定义可能不完整
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sendMessage({ role: 'user', parts: parts as any });
   };
 
   // 转换 AI SDK 消息格式到组件格式
@@ -136,6 +163,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         messages={convertedMessages}
         agentAvatar={agent.avatar}
         isLoading={isStreaming}
+        aiMessages={messages}
       />
       <ChatInput onSend={handleSend} disabled={status !== 'ready' || !conversationId} />
     </>

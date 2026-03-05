@@ -1,10 +1,16 @@
 const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY;
 const DASHSCOPE_BASE_URL = 'https://dashscope.aliyuncs.com/api/v1/apps';
 
+export interface FileInfo {
+  url: string; // 文件 URL (百炼支持 URL 格式)
+  filename?: string;
+}
+
 export interface SendMessageInput {
   appId: string;
   message: string;
   sessionId?: string;
+  fileList?: FileInfo[]; // 百炼文件列表
 }
 
 export interface BailianResponse {
@@ -23,10 +29,29 @@ export interface StreamChunk {
 export async function* sendMessageStream(
   input: SendMessageInput
 ): AsyncGenerator<StreamChunk> {
-  const { appId, message, sessionId } = input;
+  const { appId, message, sessionId, fileList } = input;
 
   if (!DASHSCOPE_API_KEY) {
     throw new Error('请在 .env.local 中配置 DASHSCOPE_API_KEY');
+  }
+
+  const requestBody: Record<string, unknown> = {
+    input: {
+      prompt: message,
+      session_id: sessionId,
+    },
+    parameters: {
+      incremental_output: true,
+    },
+    debug: {},
+  };
+
+  // 添加文件列表（如果有）
+  if (fileList && fileList.length > 0) {
+    requestBody.input = {
+      ...requestBody.input as object,
+      file_list: fileList.map(f => ({ url: f.url })),
+    };
   }
 
   const response = await fetch(`${DASHSCOPE_BASE_URL}/${appId}/completion`, {
@@ -36,16 +61,7 @@ export async function* sendMessageStream(
       'Content-Type': 'application/json',
       'X-DashScope-SSE': 'enable',
     },
-    body: JSON.stringify({
-      input: {
-        prompt: message,
-        session_id: sessionId,
-      },
-      parameters: {
-        incremental_output: true,
-      },
-      debug: {},
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {

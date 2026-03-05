@@ -1,12 +1,18 @@
 import { NextRequest } from 'next/server';
-import { sendMessageStream, SendMessageInput } from '@/lib/bailian';
+import { sendMessageStream, SendMessageInput, FileInfo } from '@/lib/bailian';
 
 const DASHSCOPE_API_KEY = process.env.DASHSCOPE_API_KEY;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { conversationId, appId, message, sessionId } = body;
+    const { conversationId, appId, message, sessionId, fileList } = body as {
+      conversationId: string;
+      appId: string;
+      message: string;
+      sessionId?: string;
+      fileList?: FileInfo[];
+    };
 
     if (!conversationId || !appId || !message) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -23,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Stream from 百炼 API
-    const input: SendMessageInput = { appId, message, sessionId };
+    const input: SendMessageInput = { appId, message, sessionId, fileList };
     const stream = sendMessageStream(input);
 
     const encoder = new TextEncoder();

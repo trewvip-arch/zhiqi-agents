@@ -7,14 +7,85 @@ import remarkGfm from 'remark-gfm';
 import rehypeRaw from 'rehype-raw';
 import rehypeSanitize from 'rehype-sanitize';
 import { Message } from '@/types/conversation';
+import { Tag } from 'antd';
+import { PaperClipOutlined } from '@ant-design/icons';
 
 interface MessageItemProps {
   message: Message;
   agentAvatar: string;
+  /** AI SDK 的 UIMessage，包含 parts 数组 */
+  aiMessage?: {
+    parts?: Array<{
+      type: string;
+      url?: string;
+      filename?: string;
+      mediaType?: string;
+      text?: string;
+    }>;
+  };
 }
 
-export default function MessageItem({ message, agentAvatar }: MessageItemProps) {
+export default function MessageItem({ message, agentAvatar, aiMessage }: MessageItemProps) {
   const isUser = message.role === 'user';
+
+  // 优先使用 AI SDK 的 parts，其次使用 Message 的 files
+  const fileParts = aiMessage?.parts?.filter(p => p.type === 'file') || [];
+  const hasFiles = (message.files && message.files.length > 0) || fileParts.length > 0;
+
+  // 渲染文件附件
+  const renderFiles = () => {
+    // 使用 AI SDK 的 file parts
+    if (fileParts.length > 0) {
+      return (
+        <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/20">
+          {fileParts.map((file, index) => (
+            <Tag
+              key={index}
+              icon={<PaperClipOutlined />}
+              className={`flex items-center gap-1 ${isUser ? 'bg-white/20 text-white border-0' : 'bg-gray-100'}`}
+            >
+              {file.url ? (
+                <a
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${isUser ? 'text-white hover:text-blue-200 underline' : 'text-blue-600 hover:text-blue-800'}`}
+                >
+                  {file.filename || '文件'}
+                </a>
+              ) : (
+                file.filename || '文件'
+              )}
+            </Tag>
+          ))}
+        </div>
+      );
+    }
+
+    // 使用传统的 files 字段
+    if (!message.files || message.files.length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-white/20">
+        {message.files.map((file, index) => (
+          <Tag
+            key={index}
+            icon={<PaperClipOutlined />}
+            className={`flex items-center gap-1 ${isUser ? 'bg-white/20 text-white border-0' : 'bg-gray-100'}`}
+          >
+            <a
+              href={file.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${isUser ? 'text-white hover:text-blue-200 underline' : 'text-blue-600 hover:text-blue-800'}`}
+            >
+              {file.name}
+            </a>
+          </Tag>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
@@ -29,7 +100,10 @@ export default function MessageItem({ message, agentAvatar }: MessageItemProps) 
         }`}
       >
         {isUser ? (
-          <p className="mb-0 whitespace-pre-wrap">{message.content}</p>
+          <div>
+            <p className="mb-0 whitespace-pre-wrap">{message.content}</p>
+            {renderFiles()}
+          </div>
         ) : (
           <div className={`prose prose-sm max-w-none ${isUser ? 'prose-invert' : ''}`}>
             <ReactMarkdown
