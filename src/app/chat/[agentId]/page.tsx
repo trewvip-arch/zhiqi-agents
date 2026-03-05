@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { message, Spin } from 'antd';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
@@ -11,13 +11,13 @@ import { getAgentById } from '@/app/actions/agent';
 import { Agent } from '@/types/agent';
 
 interface ChatPageProps {
-  params: {
+  params: Promise<{
     agentId: string;
-  };
+  }>;
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
-  const { agentId } = params;
+  const { agentId } = use(params);
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
