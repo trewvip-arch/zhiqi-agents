@@ -59,7 +59,13 @@ export async function getAgentById(id: string): Promise<AgentType | null> {
 export async function createAgent(data: Omit<AgentType, 'id'>): Promise<AgentType> {
   await connectToDatabase();
 
-  const agent = await Agent.create(data);
+  // Ensure category is a string (form may send array)
+  const category = Array.isArray(data.category) ? data.category[0] : data.category;
+
+  const agent = await Agent.create({
+    ...data,
+    category,
+  });
   revalidatePath('/admin/agents');
   revalidatePath('/');
   return {
@@ -76,7 +82,10 @@ export async function createAgent(data: Omit<AgentType, 'id'>): Promise<AgentTyp
 export async function updateAgent(id: string, data: Omit<AgentType, 'id'>): Promise<AgentType | null> {
   await connectToDatabase();
 
-  const agent = await Agent.findByIdAndUpdate(id, data, { new: true }).lean();
+  // Ensure category is a string (form may send array)
+  const category = Array.isArray(data.category) ? data.category[0] : data.category;
+
+  const agent = await Agent.findByIdAndUpdate(id, { ...data, category }, { new: true }).lean();
   if (!agent) return null;
   revalidatePath('/admin/agents');
   revalidatePath('/');
