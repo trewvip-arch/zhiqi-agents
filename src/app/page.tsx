@@ -1,3 +1,5 @@
+'use client';
+
 import { Typography, Row, Col } from 'antd';
 import AgentCard from '@/components/AgentCard';
 import { agents, categories } from '@/config/agents';

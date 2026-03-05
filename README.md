@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# AI 数字员工平台
 
-## Getting Started
+企业AI数字员工门户网站，用户可浏览所有数字员工并点击进入聊天界面获得服务。
 
-First, run the development server:
+## 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 配置环境变量
+
+复制 `.env.local.example` 到 `.env.local` 并填写：
+
+```bash
+# 百炼 API
+DASHSCOPE_API_KEY=your_api_key
+MONGODB_URI=mongodb://localhost:27017/agents-gallery
+
+# Agent APP_IDs (在百炼控制台获取)
+NEXT_PUBLIC_HIRELY_APP_ID=your_app_id
+NEXT_PUBLIC_ATLAS_APP_ID=your_app_id
+# ... 其他 agent
+```
+
+### 3. 启动 MongoDB
+
+```bash
+# 使用 Docker
+docker run -d -p 27017:27017 --name mongodb mongo:7
+
+# 或使用本地 MongoDB
+mongod --dbpath /path/to/data
+```
+
+### 4. 启动开发服务器
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+访问 http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 部署
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+### 阿里云 ECS + PM2
 
-## Learn More
+1. 构建项目：
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+2. 使用 PM2 启动：
+```bash
+pm2 start ecosystem.config.js
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 添加新的数字员工
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+编辑 `src/config/agents.ts`：
 
-## Deploy on Vercel
+```typescript
+{
+  id: 'new-agent',           // URL slug
+  appId: process.env.NEXT_PUBLIC_NEW_AGENT_APP_ID || '',
+  name: '新数字员工',
+  description: '描述...',
+  avatar: '🤖',
+  tags: ['标签1', '标签2'],
+  category: '分类',
+}
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 技术栈
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- Next.js 14 (App Router)
+- Ant Design 5
+- MongoDB + Mongoose
+- 阿里云百炼 API
