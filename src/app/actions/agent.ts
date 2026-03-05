@@ -33,6 +33,25 @@ function initializeDefaultAgents() {
   }
 }
 
+// Seed database with default agent if empty
+async function seedDatabaseIfEmpty() {
+  const count = await Agent.countDocuments();
+  if (count === 0) {
+    console.log('[Agent] Seeding database with default agent...');
+    for (const agent of DEFAULT_AGENTS) {
+      await Agent.create({
+        _id: agent._id,
+        appId: agent.appId,
+        name: agent.name,
+        description: agent.description,
+        avatar: agent.avatar,
+        tags: agent.tags,
+        category: agent.category,
+      });
+    }
+  }
+}
+
 export async function getAgents(): Promise<AgentType[]> {
   const db = await connectToDatabase();
 
@@ -48,6 +67,9 @@ export async function getAgents(): Promise<AgentType[]> {
       category: a.category,
     }));
   }
+
+  // Seed database if empty
+  await seedDatabaseIfEmpty();
 
   const agents = await Agent.find({}).sort({ createdAt: -1 }).lean();
   return agents.map(a => ({

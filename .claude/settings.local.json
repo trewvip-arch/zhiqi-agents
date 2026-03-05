@@ -19,7 +19,10 @@
       "Bash(lsof:*)",
       "Bash(sleep 5:*)",
       "Bash(sleep 8:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
+      "Skill(commit-commands:commit)"
     ]
   }
 }
