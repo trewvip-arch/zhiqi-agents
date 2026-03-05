@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { message } from 'antd';
+import { message, Spin } from 'antd';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
-import { getAgentById } from '@/config/agents';
 import { Message } from '@/types/conversation';
 import { createConversation, chat } from '@/app/actions/conversation-actions';
+import { getAgentById } from '@/app/actions/agent';
+import { Agent } from '@/types/agent';
 
 interface ChatPageProps {
   params: {
@@ -17,22 +18,25 @@ interface ChatPageProps {
 
 export default function ChatPage({ params }: ChatPageProps) {
   const { agentId } = params;
-  const agent = getAgentById(agentId);
-
+  const [agent, setAgent] = useState<Agent | null>(null);
+  const [loading, setLoading] = useState(true);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!agent) return;
-
-    const initConversation = async () => {
-      const id = await createConversation(agentId);
-      setConversationId(id);
+    const init = async () => {
+      setLoading(true);
+      const agentData = await getAgentById(agentId);
+      setAgent(agentData);
+      if (agentData) {
+        const id = await createConversation(agentId);
+        setConversationId(id);
+      }
+      setLoading(false);
     };
-
-    initConversation();
-  }, [agentId, agent]);
+    init();
+  }, [agentId]);
 
   const handleSend = async (content: string) => {
     if (!conversationId || !agent) return;
@@ -70,6 +74,14 @@ export default function ChatPage({ params }: ChatPageProps) {
       setIsLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   if (!agent) {
     return (

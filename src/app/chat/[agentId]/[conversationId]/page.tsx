@@ -5,9 +5,10 @@ import { message, Spin } from 'antd';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
-import { getAgentById } from '@/config/agents';
 import { Message } from '@/types/conversation';
 import { getConversation, chat } from '@/app/actions/conversation-actions';
+import { getAgentById } from '@/app/actions/agent';
+import { Agent } from '@/types/agent';
 
 interface ConversationPageProps {
   params: {
@@ -18,15 +19,16 @@ interface ConversationPageProps {
 
 export default function ConversationPage({ params }: ConversationPageProps) {
   const { agentId, conversationId } = params;
-  const agent = getAgentById(agentId);
-
+  const [agent, setAgent] = useState<Agent | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    const loadConversation = async () => {
+    const loadData = async () => {
       setIsLoading(true);
+      const agentData = await getAgentById(agentId);
+      setAgent(agentData);
       const conversation = await getConversation(conversationId);
       if (conversation) {
         setMessages(conversation.messages);
@@ -36,8 +38,8 @@ export default function ConversationPage({ params }: ConversationPageProps) {
       setIsLoading(false);
     };
 
-    loadConversation();
-  }, [conversationId]);
+    loadData();
+  }, [agentId, conversationId]);
 
   const handleSend = async (content: string) => {
     if (!agent) return;
