@@ -1,0 +1,19 @@
+version: '3.8'
+
+# Development only - MongoDB service
+# Usage: docker compose -f docker-compose.dev.yml up -d
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: agents-gallery-mongo-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_dev_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=agents-gallery
+    restart: unless-stopped
+
+volumes:
+  mongodb_dev_data:
