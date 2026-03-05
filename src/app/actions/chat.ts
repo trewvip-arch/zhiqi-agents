@@ -19,11 +19,14 @@ export async function chat(
   appId: string,
   userMessage: string
 ) {
+  console.log('[chat] Starting chat with:', { conversationId, agentId, appId, hasApiKey: !!DASHSCOPE_API_KEY });
+
   // Save user message
   await addMessage(conversationId, 'user', userMessage);
 
   // Check if API is configured
   if (!DASHSCOPE_API_KEY || !appId) {
+    console.log('[chat] Demo mode - API key or appId missing');
     // Demo mode - return a mock response
     const randomResponse = DEMO_RESPONSES[Math.floor(Math.random() * DEMO_RESPONSES.length)];
     const demoResponse = `${randomResponse}\n\n您刚才说：「${userMessage.slice(0, 100)}${userMessage.length > 100 ? '...' : ''}」`;
@@ -45,12 +48,15 @@ export async function chat(
   let fullResponse = '';
 
   try {
+    console.log('[chat] Calling 百炼 API with appId:', appId);
     const stream = sendMessageStream(input);
 
     for await (const chunk of stream) {
       if (chunk.done) break;
       fullResponse += chunk.content;
     }
+
+    console.log('[chat] Response received, length:', fullResponse.length);
 
     // Save assistant message
     await addMessage(conversationId, 'assistant', fullResponse);
@@ -60,7 +66,7 @@ export async function chat(
       content: fullResponse,
     };
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('[chat] Chat error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -37,6 +37,8 @@ export default function ChatPage({ params }: ChatPageProps) {
   const handleSend = async (content: string) => {
     if (!conversationId || !agent) return;
 
+    console.log('[ChatPage] Sending message:', { conversationId, agentId, appId: agent.appId });
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -49,6 +51,7 @@ export default function ChatPage({ params }: ChatPageProps) {
 
     try {
       const result = await chat(conversationId, agentId, agent.appId, content);
+      console.log('[ChatPage] Chat result:', result);
 
       if (result.success) {
         const assistantMessage: Message = {

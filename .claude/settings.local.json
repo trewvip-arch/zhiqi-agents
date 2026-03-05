@@ -15,7 +15,11 @@
       "Bash(source ~/.nvm/nvm.sh && nvm use 20 && npm run build 2>&1)",
       "Bash(source ~/.nvm/nvm.sh && nvm use 20 && npx tsc --noEmit 2>&1)",
       "Bash(echo nvm not available:*)",
-      "Bash(source ~/.nvm/nvm.sh && nvm use 20.20.0 && npm run build 2>&1)"
+      "Bash(source ~/.nvm/nvm.sh && nvm use 20.20.0 && npm run build 2>&1)",
+      "Bash(lsof:*)",
+      "Bash(sleep 5:*)",
+      "Bash(sleep 8:*)",
+      "Bash(curl:*)"
     ]
   }
 }

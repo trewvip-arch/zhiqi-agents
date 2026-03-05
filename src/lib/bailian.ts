@@ -33,13 +33,17 @@ export async function* sendMessageStream(
     headers: {
       Authorization: `Bearer ${DASHSCOPE_API_KEY}`,
       'Content-Type': 'application/json',
-      Accept: 'text/event-stream',
+      'X-DashScope-SSE': 'enable',
     },
     body: JSON.stringify({
-      prompt: message,
-      session_id: sessionId,
-      stream: true,
-      incremental_output: true,
+      input: {
+        prompt: message,
+        session_id: sessionId,
+      },
+      parameters: {
+        incremental_output: true,
+      },
+      debug: {},
     }),
   });
 
@@ -61,17 +65,21 @@ export async function* sendMessageStream(
       const { done, value } = await reader.read();
 
       if (done) {
+        console.log('[bailian] Stream done');
         yield { content: '', done: true };
         break;
       }
 
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      console.log('[bailian] Raw chunk:', chunk.slice(0, 200));
+      buffer += chunk;
       const lines = buffer.split('\n');
       buffer = lines.pop() || '';
 
       for (const line of lines) {
         if (line.startsWith('data:')) {
           const data = line.slice(5).trim();
+          console.log('[bailian] Data line:', data.slice(0, 200));
           if (data === '[DONE]') {
             yield { content: '', done: true };
             return;
@@ -79,12 +87,13 @@ export async function* sendMessageStream(
 
           try {
             const parsed = JSON.parse(data);
+            console.log('[bailian] Parsed:', JSON.stringify(parsed).slice(0, 200));
             const content = parsed.output?.text || '';
             if (content) {
               yield { content, done: false };
             }
-          } catch {
-            // Skip invalid JSON
+          } catch (e) {
+            console.log('[bailian] JSON parse error:', e);
           }
         }
       }
@@ -109,9 +118,12 @@ export async function sendMessage(input: SendMessageInput): Promise<BailianRespo
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        prompt: message,
-        session_id: sessionId,
-        stream: false,
+        input: {
+          prompt: message,
+          session_id: sessionId,
+        },
+        parameters: {},
+        debug: {},
       }),
     });
 
