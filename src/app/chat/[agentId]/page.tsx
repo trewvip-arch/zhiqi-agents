@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import { message, Spin } from 'antd';
 import ChatHeader from '@/components/chat/ChatHeader';
 import MessageList from '@/components/chat/MessageList';
 import ChatInput from '@/components/chat/ChatInput';
 import { Message } from '@/types/conversation';
-import { createConversation, chat } from '@/app/actions/conversation-actions';
+import { createConversation } from '@/app/actions/conversation-actions';
 import { getAgentById } from '@/app/actions/agent';
 import { Agent } from '@/types/agent';
 
@@ -23,6 +23,7 @@ export default function ChatPage({ params }: ChatPageProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
 
   useEffect(() => {
     const init = async () => {
@@ -38,10 +39,8 @@ export default function ChatPage({ params }: ChatPageProps) {
     init();
   }, [agentId]);
 
-  const handleSend = async (content: string) => {
+  const handleSend = useCallback(async (content: string) => {
     if (!conversationId || !agent) return;
-
-    console.log('[ChatPage] Sending message:', { conversationId, agentId, appId: agent.appId });
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -52,28 +51,81 @@ export default function ChatPage({ params }: ChatPageProps) {
 
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    setStreamingContent('');
 
     try {
-      const result = await chat(conversationId, agentId, agent.appId, content);
-      console.log('[ChatPage] Chat result:', result);
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId,
+          appId: agent.appId,
+          message: content,
+        }),
+      });
 
-      if (result.success) {
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: result.content || '',
-          createdAt: new Date(),
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } else {
-        message.error(result.error || '发送失败');
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const data = line.slice(5).trim();
+
+            if (data === '[DONE]') {
+              // Add complete message
+              const assistantMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: fullContent,
+                createdAt: new Date(),
+              };
+              setMessages((prev) => [...prev, assistantMessage]);
+              setStreamingContent('');
+              setIsLoading(false);
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                fullContent += parsed.content;
+                setStreamingContent(fullContent);
+              }
+              if (parsed.error) {
+                message.error(parsed.error);
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
       }
     } catch (error) {
       message.error('网络错误，请重试');
-    } finally {
       setIsLoading(false);
+      setStreamingContent('');
     }
-  };
+  }, [conversationId, agent]);
 
   if (loading) {
     return (
@@ -98,6 +150,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         messages={messages}
         agentAvatar={agent.avatar}
         isLoading={isLoading}
+        streamingContent={streamingContent}
       />
       <ChatInput onSend={handleSend} disabled={isLoading || !conversationId} />
     </>

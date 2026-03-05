@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import { Empty, Spin } from 'antd';
+import { Empty } from 'antd';
 import MessageItem from './MessageItem';
 import { Message } from '@/types/conversation';
 
@@ -9,20 +9,22 @@ interface MessageListProps {
   messages: Message[];
   agentAvatar: string;
   isLoading?: boolean;
+  streamingContent?: string;
 }
 
 export default function MessageList({
   messages,
   agentAvatar,
   isLoading,
+  streamingContent,
 }: MessageListProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, streamingContent]);
 
-  if (messages.length === 0 && !isLoading) {
+  if (messages.length === 0 && !isLoading && !streamingContent) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <Empty
@@ -38,13 +40,16 @@ export default function MessageList({
       {messages.map((message) => (
         <MessageItem key={message.id} message={message} agentAvatar={agentAvatar} />
       ))}
-      {isLoading && (
-        <div className="flex gap-3">
-          <span className="text-2xl">{agentAvatar}</span>
-          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm">
-            <Spin size="small" />
-          </div>
-        </div>
+      {streamingContent && (
+        <MessageItem
+          message={{
+            id: 'streaming',
+            role: 'assistant',
+            content: streamingContent,
+            createdAt: new Date(),
+          }}
+          agentAvatar={agentAvatar}
+        />
       )}
       <div ref={bottomRef} />
     </div>
