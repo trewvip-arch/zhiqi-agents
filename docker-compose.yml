@@ -15,7 +15,7 @@ services:
       - mongodb
     restart: unless-stopped
     volumes:
-      - ./uploads:/app/public/uploads
+      - uploads_data:/app/public/uploads
 
   mongodb:
     image: mongo:7
@@ -30,3 +30,4 @@ services:
 
 volumes:
   mongodb_data:
+  uploads_data:
