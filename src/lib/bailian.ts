@@ -55,6 +55,8 @@ export async function* sendMessageStream(
     };
   }
 
+  console.log('[bailian] Request:', JSON.stringify(requestBody, null, 2));
+
   const response = await fetch(`${DASHSCOPE_BASE_URL}/${appId}/completion`, {
     method: 'POST',
     headers: {
