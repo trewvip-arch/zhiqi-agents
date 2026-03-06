@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
+const PUBLIC_URL = process.env.PUBLIC_URL;
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -24,8 +26,10 @@ export async function POST(request: NextRequest) {
     const filePath = join(uploadDir, uniqueName);
     await writeFile(filePath, buffer);
 
-    // 返回可访问的 URL
-    const url = `/api/uploads/${uniqueName}`;
+    // 返回完整的公网 URL（供百炼访问）
+    const url = PUBLIC_URL
+      ? `${PUBLIC_URL}/api/uploads/${uniqueName}`
+      : `/api/uploads/${uniqueName}`;
 
     return NextResponse.json({
       url,

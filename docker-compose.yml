@@ -11,6 +11,7 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongodb:27017/agents-gallery
       - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - PUBLIC_URL=${PUBLIC_URL}
     depends_on:
       - mongodb
     restart: unless-stopped
