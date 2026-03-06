@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // 返回可访问的 URL
-    const url = `/uploads/${uniqueName}`;
+    const url = `/api/uploads/${uniqueName}`;
 
     return NextResponse.json({
       url,

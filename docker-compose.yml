@@ -14,6 +14,8 @@ services:
     depends_on:
       - mongodb
     restart: unless-stopped
+    volumes:
+      - ./uploads:/app/public/uploads
 
   mongodb:
     image: mongo:7
