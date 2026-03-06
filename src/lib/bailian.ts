@@ -48,9 +48,10 @@ export async function* sendMessageStream(
 
   // 添加文件列表（如果有）
   if (fileList && fileList.length > 0) {
+    // 百炼 API 期望字符串数组格式
     requestBody.input = {
       ...requestBody.input as object,
-      file_list: fileList.map(f => ({ url: f.url })),
+      file_list: fileList.map(f => f.url),
     };
   }
 
