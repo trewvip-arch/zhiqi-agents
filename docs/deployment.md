@@ -25,18 +25,17 @@
 
 ## 环境变量
 
-在服务器上创建 `.env` 文件：
+在服务器上创建 `.env` 文件，参考 `.env.example`：
 
 ```bash
-# 百炼 API
-DASHSCOPE_API_KEY=your_api_key_here
-
-# MongoDB
+# MongoDB (Docker Compose 环境使用容器名)
 MONGODB_URI=mongodb://mongodb:27017/agents-gallery
 
-# Agent APP_IDs
-NEXT_PUBLIC_HIRELY_APP_ID=your_app_id
-NEXT_PUBLIC_ATLAS_APP_ID=your_app_id
+# 阿里云百炼 API
+DASHSCOPE_API_KEY=your-api-key-here
+
+# 公开访问地址 (用于文件上传功能)
+PUBLIC_URL=http://your-ip:3000
 ```
 
 ## 服务端部署
